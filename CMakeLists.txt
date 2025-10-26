@@ -1,51 +1,49 @@
-cmake_minimum_required(VERSION 3.10)
-project(FileManager LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.16)
+project(FileMonitoring LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTORCC OFF)
+set(CMAKE_AUTOUIC OFF)
 
-find_package(Qt5 COMPONENTS Core REQUIRED)
+set(QT_REQUIRED_COMPONENTS Core)
+find_package(Qt6 QUIET COMPONENTS ${QT_REQUIRED_COMPONENTS})
+if(NOT Qt6_FOUND)
+  find_package(Qt5 REQUIRED COMPONENTS ${QT_REQUIRED_COMPONENTS})
+  set(QT_VER 5)
+else()
+  set(QT_VER 6)
+endif()
 
-# Sources
-set(SOURCES
-    main.cpp
-    filemanager.cpp
-    monitoredfile.cpp
-    consolewriter.cpp
-    logger.cpp
+set(SRC
+  main.cpp
+  consolewriter.cpp
+  filemanager.cpp
+  logger.cpp
+  monitoredfile.cpp
 )
 
-set(HEADERS
-    filemanager.h
-    monitoredfile.h
-    consolewriter.h
-    logger.h
+add_executable(${PROJECT_NAME} ${SRC})
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+if(QT_VER EQUAL 6)
+  target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Core)
+else()
+  target_link_libraries(${PROJECT_NAME} PRIVATE Qt5::Core)
+endif()
+
+if(MSVC)
+  target_compile_options(${PROJECT_NAME} PRIVATE /W4)
+else()
+  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+# Копирование resources рядом с exe после сборки
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          "${CMAKE_CURRENT_SOURCE_DIR}/resources"
+          "$<TARGET_FILE_DIR:${PROJECT_NAME}>/resources"
 )
-
-add_executable(${PROJECT_NAME}
-    ${SOURCES}
-    ${HEADERS}
-)
-
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-target_link_libraries(${PROJECT_NAME} PRIVATE Qt5::Core)
-
-# Ensure resources directory is available next to the built executable.
-# If you don't have a resources/ directory, this step is harmless.
-set(SRC_RES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/resources")
-add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${SRC_RES_DIR}"
-    "$<TARGET_FILE_DIR:${PROJECT_NAME}>/resources"
-    COMMENT "Copying resources to output folder"
-)
-
-# Optional: set working directory when running from IDE (Qt Creator)
-set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")

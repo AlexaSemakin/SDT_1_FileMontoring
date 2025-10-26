@@ -1,0 +1,47 @@
+@startuml
+MonitoredFile --|> QFileInfo
+ConsoleWriter --|> QObject
+Logger --|> QObject
+FileManager --|> QObject
+
+' Зависимости (использование, в т.ч. через signal/slot, без перечисления слотов)
+FileManager ..> ConsoleWriter : uses
+FileManager ..> Logger : uses
+ConsoleWriter ..> FileManager : uses
+ConsoleWriter ..> MonitoredFile
+Logger ..> MonitoredFile
+
+' Композиция: FileManager владеет MonitoredFile (поле не показываем в классе)
+FileManager *-- "0..*" MonitoredFile
+
+class QObject {}
+class QFileInfo {}
+
+class ConsoleWriter{
+    - sizes: QVector<Integer>
+    - handle: HANDLE
+    - void clearConsole()
+    - void printHeader()
+    - void printRow(index: Integer, monitoredFile: MonitoredFile)
+    + String sizeToString(size: Integer)
+}
+
+class FileManager{
+    - Integer search(path: String)
+    - FileManager(parent: QObject)  ' приватный (Singleton)
+    + {static} FileManager getInstance()
+    + Boolean addFile(path: String)
+    + Boolean removeFile(path: String)
+    + void emitAllStatuses()
+}
+
+class Logger {
+    - file: QFile
+}
+
+class MonitoredFile{
+    - oldExists: Boolean
+    - oldSize: Integer
+    + Boolean update()
+}
+@enduml
